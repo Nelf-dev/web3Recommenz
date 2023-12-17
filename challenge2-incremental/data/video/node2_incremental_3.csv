@@ -2,12 +2,12 @@ Node,Sentiment,VideoID,Caption
 node2,good,dbMIV4KbiCM,a guitar sitting on a table near two people
 node2,good,oMt70srxpwU,two images of a blonde woman wearing a jacket and her face is reflected on two different screens
 node2,good,rRQKZsSB0Y0,chocolate sauce mixing process in a clear glass
-node2,good,yNehNxfDl2U,the game has an animated figure with a speech bubble
-node2,good,y1EiIqynWBk,the show has a man in a traditional outfit
+node2,bad,yNehNxfDl2U,the game has an animated figure with a speech bubble
+node2,bad,y1EiIqynWBk,the show has a man in a traditional outfit
 node2,bad,KBzhqICdCF8,this person is playing on the table with animals
-node2,bad,OT42X4ID2mY,an image of food on a computer screen
-node2,bad,cDL6tNltHQ8,a large passenger plane flying in the sky
-node2,bad,6l9aGwGVxtw,the voice in your head grew up with your father at one point
-node2,bad,8iUiphfMaI8,a water polo player in an old photo playing the ball
+node2,neutral,OT42X4ID2mY,an image of food on a computer screen
+node2,neutral,cDL6tNltHQ8,a large passenger plane flying in the sky
+node2,neutral,6l9aGwGVxtw,the voice in your head grew up with your father at one point
+node2,good,8iUiphfMaI8,a water polo player in an old photo playing the ball
 node2,neutral,bt7hN6yhFP8,a woman talking on the phone in a car
-node2,neutral,dfGr_WUggRQ,a rover parked on the edge of the desert
+node2,bad,dfGr_WUggRQ,a rover parked on the edge of the desert

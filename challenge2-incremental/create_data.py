@@ -14,8 +14,8 @@ df_sample.rename(columns={'YoutubeID':'VideoID'}, inplace=True)
 repeated_nodes = ['node1'] * 15 + ['node2'] * 15
 
 # Generate a list of sentiment
-sentiment_node1 = ['good'] * 4 + ['bad'] * 10 + ['neutral'] * 1
-sentiment_node2 = ['good'] * 5 + ['bad'] * 5 + ['neutral'] * 5
+sentiment_node1 = ['good'] * 1 + ['bad'] * 7 + ['neutral'] * 1 + ['good'] * 2 + ['bad'] * 1 + ['neutral'] * 1 + ['bad'] * 2
+sentiment_node2 = ['good'] * 3 + ['bad'] * 3 + ['neutral'] * 3 + ['good'] * 1 + ['neutral'] * 1 + ['bad'] * 2 + ['good'] * 2
 sentiment = sentiment_node1 + sentiment_node2
 
 # Create a dataframe with the nodes and sentiment
@@ -32,7 +32,11 @@ df_n2 = pd.concat([df.query('Node == "node2"').iloc[:9,:], df.query('Node == "no
 
 # Drop values from Sentiment column for rows 12:14
 df_n1.loc[12:14, 'Sentiment'] = ''
-df_n2.loc[12:14, 'Sentiment'] = ''
+df_n2.loc[27:29, 'Sentiment'] = ''
+
+# Export data to csv files
+df_n1.to_csv(f'{export_path}\\node1_data.csv', index=False)
+df_n2.to_csv(f'{export_path}\\node2_data.csv', index=False)
 
 # Export data to csv files
 df_n1.to_csv(f'{export_path}\\node1_data.csv', index=False)

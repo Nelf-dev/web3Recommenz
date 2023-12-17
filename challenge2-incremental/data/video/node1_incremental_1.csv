@@ -1,11 +1,11 @@
 Node,Sentiment,VideoID,Caption
 node1,good,F4lnMCJPnD8,power director - the adrenaline rush of bungee jumping
-node1,good,lob6lz9ND2Q,"a logo for android in white,"
-node1,good,Ia4qaJXjVCQ,a woman with her hands on her face and her mouth
-node1,good,F1Q5BR0uLfo,"anthony fauci, md, director of the national institutes of health"
+node1,bad,lob6lz9ND2Q,"a logo for android in white,"
+node1,bad,Ia4qaJXjVCQ,a woman with her hands on her face and her mouth
+node1,bad,F1Q5BR0uLfo,"anthony fauci, md, director of the national institutes of health"
 node1,bad,pcBtC7WQDng,a boy crouching down next to two water bottles
 node1,bad,Im3GLBtcRzk,an app with different language texts
 node1,bad,664loXCHp0E,kymco mxi review - 2019 motorcycle
 node1,bad,tNABnTN2W4g,the mountain peaks in china are covered with green grass
-node1,bad,iWyrN4cS_uM,the chinese character ''and the text for the article
-node1,bad,h25oXrWBaCc,the text for the chinese social media
+node1,neutral,iWyrN4cS_uM,the chinese character ''and the text for the article
+node1,good,h25oXrWBaCc,the text for the chinese social media
