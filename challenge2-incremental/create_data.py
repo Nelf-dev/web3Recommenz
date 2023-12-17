@@ -1,8 +1,7 @@
-import random
 import pandas as pd
 
 # Set the path for the data
-import_path = r'..\..\Data'
+import_path = r'..\..\Data' # This folder is not in the repo due to the size of the raw dataset
 export_path = r'data\video'
 
 # Read a parquet dataset
@@ -19,11 +18,6 @@ sentiment_node1 = ['good'] * 4 + ['bad'] * 10 + ['neutral'] * 1
 sentiment_node2 = ['good'] * 5 + ['bad'] * 5 + ['neutral'] * 5
 sentiment = sentiment_node1 + sentiment_node2
 
-# Randomly shuffle the nodes and sentiment
-# import random
-# random.shuffle(repeated_nodes)
-# random.shuffle(repeated_sentiment)
-
 # Create a dataframe with the nodes and sentiment
 df_nodes = pd.DataFrame({'Node': repeated_nodes,'Sentiment': sentiment})
 
@@ -32,13 +26,17 @@ df = pd.merge(df_sample, df_nodes, left_index=True, right_index=True)
 col_order = ['Node','Sentiment','VideoID','Caption']
 df = df.reindex(columns=col_order)
 
-# Export the training data to csv files
-df.query('Node == "node1"').iloc[:9,:].to_csv(f'{export_path}\\node1_train.csv', index=False)
-df.query('Node == "node2"').iloc[:9,:].to_csv(f'{export_path}\\node2_train.csv', index=False)
+# Create dataset with training and test data
+df_n1 = pd.concat([df.query('Node == "node1"').iloc[:9,:], df.query('Node == "node1"').iloc[12:15,:]])
+df_n2 = pd.concat([df.query('Node == "node2"').iloc[:9,:], df.query('Node == "node2"').iloc[12:15,:]])
 
-# Export test data to csv files
-df.query('Node == "node1"').iloc[12:15,[0,2,3]].to_csv(f'{export_path}\\node1_test.csv', index=False)
-df.query('Node == "node2"').iloc[12:15,[0,2,3]].to_csv(f'{export_path}\\node2_test.csv', index=False)
+# Drop values from Sentiment column for rows 12:14
+df_n1.loc[12:14, 'Sentiment'] = ''
+df_n2.loc[12:14, 'Sentiment'] = ''
+
+# Export data to csv files
+df_n1.to_csv(f'{export_path}\\node1_data.csv', index=False)
+df_n2.to_csv(f'{export_path}\\node2_data.csv', index=False)
 
 # Export the incremental learning data to csv files
 df.query('Node == "node1"').iloc[:10,:].to_csv(f'{export_path}\\node1_incremental_1.csv', index=False)
