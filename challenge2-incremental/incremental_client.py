@@ -5,6 +5,7 @@ import random
 import pickle
 import base64
 from incremental_model import AutoEncoderTrainer, AE, reset_seeds #replace AutoEncoderTrainer to Trainer Leo will make
+import pdb
 # import spreadsheet
 
 server_location = "http://localhost:4001"
@@ -37,30 +38,27 @@ def main():
 
         ###################################
 
-        # import oldDataSet
-        # import newDataSet (To simulate streamed data)
-
         # Get Hard Coded weights from Server and save it to a variable(previous weights) if epoch = 0
-        defaultWeights,serialized_data, epochs = get_server_data()
+        serialized_data, epochs = get_server_data() #add defaultWeights Parameter
 
-        weights = #Previous weights
 
+        #weights = #Previous weights
         if epochs == 0:
-            weights = defaultWeights
+            weights = serialized_data
 
         # subModel1Updates = Send these weights and OLD local dataset to submodel1
-        model = AE()
-        state_dict = pickle.loads(base64.b64decode(serialized_data))
-        model.load_state_dict(state_dict)
+        # model = AE()
+        # state_dict = pickle.loads(base64.b64decode(serialized_data))
+        # model.load_state_dict(state_dict)
 
-        loss = AutoEncoderTrainer.train(model, 1, segment)
+        # loss = AutoEncoderTrainer.train(model, 1, segment)
 
 
-        # send subModel1Updates -  post_server_data(subModel1Updates)
-        post_server_data(base64.b64encode(pickle.dumps(model.state_dict())).decode("utf-8"), segment, loss, epochs)
+        # # send subModel1Updates -  post_server_data(subModel1Updates)
+        # post_server_data(base64.b64encode(pickle.dumps(model.state_dict())).decode("utf-8"), segment, loss, epochs)
 
-        # Wait ten seconds
-        time.sleep()
+        # # Wait ten seconds
+        # time.sleep(10)
 
         # serialized_data, epochs = get_server_data()
         # subModel2Updates = send completed JSON data to ARFED submodel

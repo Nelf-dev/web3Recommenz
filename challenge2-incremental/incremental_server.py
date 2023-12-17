@@ -5,8 +5,10 @@ Challenge 2: Incremental Learning
 from pyhypercycle_aim import SimpleServer, JSONResponseCORS, aim_uri
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from incremental_model import AutoEncoderTrainer
 # from incremental_model import generic_model
 import os
+import pdb
 
 PORT = os.environ.get("PORT", 4001)
 
@@ -36,17 +38,19 @@ class IncrementalExample(SimpleServer):
              })
     def get_data(self, request):
         client_id = request.query_params.get("client_id")
+        MODELparams, MODELepochs = AutoEncoderTrainer.get_data()
 
-        if epochs == 0:
-            params, epochs = 0000, 0000
+        if MODELepochs == 0:
+            params, epochs = "0000", 0
+            data = {"params": params, "epochs": epochs}
+            return JSONResponseCORS(data)
         else:
         # Assuming that the generic_model.get_data() return a tuple    
         # params, epochs = generic_model.get_data()
             
-        params, epochs = 9999, 9999
-        data = {"params": params, "epochs": epochs}
-        
-        return JSONResponseCORS(data)
+            params, epochs = "9999", 9999
+            data = {"params": params, "epochs": epochs}
+            return JSONResponseCORS(data)
 
     @aim_uri(uri="/post_data", methods=["POST"],
              endpoint_manifest = {
