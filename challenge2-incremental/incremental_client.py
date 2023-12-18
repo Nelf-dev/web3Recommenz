@@ -6,33 +6,19 @@ import pickle
 import base64
 from incremental_model import AutoEncoderTrainer, AE, reset_seeds #replace AutoEncoderTrainer to Trainer Leo will make
 import pdb
-import oldDataSet
-# import spreadsheet
+import pandas as pd
 
 server_location = "http://localhost:4001"
 
 def get_server_data():
     data = requests.get(server_location+"/get_data").json()
-    return data['params'], data['epochs']
+    return data['params'], data['epochs'], data['current_weights']
 
 def post_server_data(params, segment, loss, epochs):
     data = {"params": params, "segment": segment, "loss": loss, "epochs": epochs}
     requests.post(server_location+"/post_data", json=data)
 
-def get_dataset(segment):
-    # Transforms images to a PyTorch Tensor
-    # MAY OR MAY NOT USE THIS
-    #tensor_transform = transforms.ToTensor()
-
-    trainset = oldDataSet
-
-    loader = torch.utils.data.DataLoader(
-        trainset,
-        batch_size=16,
-        shuffle=False,
-        num_workers=2
-        )
-    return loader
+csv_file_path = 'dataset.csv'
 
 def main():
     epoch = 0
@@ -40,46 +26,49 @@ def main():
     client_id = sys.argv[2]
 
     while True:
-        # reset_seeds()
-        # model = AE() #Change this to Leos Model
-        # serialized_data, epochs = get_server_data()
-        # state_dict = pickle.loads(base64.b64decode(serialized_data))
-        # model.load_state_dict(state_dict) #This is the loading weights function
-        # loss = AutoEncoderTrainer.train(model, 1, segment)
-        # post_server_data(base64.b64encode(pickle.dumps(model.state_dict())).decode("utf-8"), segment, loss, epochs)
-        # print("Client:",client_id, "Epochs:", epochs, "Loss:", loss, "Segment: "+sys.argv[1])
-        # time.sleep(1)
-
-        ###################################
-
+        ###STEP 1###
         # Get Hard Coded weights from Server and save it to a variable(previous weights) if epoch = 0
-        serialized_data, epochs = get_server_data() #add defaultWeights Parameter
+        serialized_data, epochs, current_weights = get_server_data()
 
+        # Liase with Corey how to add defaultWeights Parameter
+        weights = current_weights
 
+        pdb.set_trace()
         #weights = #Previous weights
         if epochs == 0:
             weights = serialized_data
 
         model = AE()
 
-        #convert decode serialized data
+        #convert decode serialized data to get weights
         state_dict = pickle.loads(base64.b64decode(serialized_data))
-        #load weights
+        #load weights into the local model
         model.load_state_dict(state_dict)
-        # Send data set to model
-        dataset = get_dataset(segment)
-        loss = AutoEncoderTrainer.train(model, 1, segment, dataset)
-        # not sure how to just send noisy local model weights updates
+        # Convert data set to Pandas dataframe
+        data_set = pd.read_csv(csv_file_path)
+        # Send data set to local model
+        loss = AutoEncoderTrainer.train(model, 1, segment, data_set)
+        # Assuming the training function for our model returns noisy updates to the weight
+        # not sure how to just send noisy local model weights updates, maybe as a new parameter?
         post_server_data(base64.b64encode(pickle.dumps(model.state_dict())).decode("utf-8"), segment, loss, epochs)
-
-        # Wait ten seconds
+        # Wait ten seconds - So that other nodes can also update the server
         time.sleep(10)
 
-        # serialized_data, epochs = get_server_data()
+        # Get updated data that has been AVGed by the server
+        completed_json_file = get_server_data() # WHAT DOES THIS LOOK LIKE?
+
+        ###STEP 2###
         # subModel2Updates = send completed JSON data to ARFED submodel
+        arfed_weights = AutoEncoderTrainer.trainARFED(completed_json_file)
+
+        ###STEP 3###
         # newWeights = subtract previousweights with subModel2Updates.weights
+        new_weights = previous_weights - arfed_weights
+
         # subModel3Updates = send newWeights into incremental submodel
-        # if newDataSet.count > oldDataSet.count
+        incrementedLearning = AutoEncoderTrainer.trainIncremental(new_weights)
+
+        # if new_data_set.count > old_data_set.count:
             # identify the new row of data
             # noisyIncrementalUpdate = send this data to incremental submodel
             # post_server_data(noisyIncrementalUpdate)

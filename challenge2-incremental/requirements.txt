@@ -3,3 +3,4 @@ starlette
 requests
 torch
 torchvision
+pandas
