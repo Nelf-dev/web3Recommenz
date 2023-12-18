@@ -9,14 +9,21 @@ PORT = os.environ.get("PORT", 4001)
 
 app = FastAPI()
 
+captured_weights = []
+
 @app.get("/get_initial_server_data")
 def get_state_dict():
     return torch.load('./models/model.pth')
 
-# def federated_avg:
-#     arrays = np.array(updated_weights_from_clients)
-#     # Calculate the federated average
-#     return np.mean(arrays, axis=0)
+@app.post("/post_server_data")
+def post_data(data: dict):
+    captured_weights.append(data)
+
+@app.post("/get_federated_average")
+def federated_avg():
+    arrays = np.array(captured_weights)
+    # Calculate the federated average
+    return np.mean(arrays, axis=0)
 
 if __name__ == '__main__':
     import uvicorn
