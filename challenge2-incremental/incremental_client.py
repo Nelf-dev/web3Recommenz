@@ -82,6 +82,10 @@ def main():
         streamed_row = pd.read_csv(streamed_data)
         streamed_last_row = data_set.iloc[-1]
 
+        updated_state_dict = pickle.loads(base64.b64decode(updated_serialized_data))
+        #load weights into the local model
+        model.load_state_dict(updated_state_dict)
+
         # subModel3Updates = send newWeights into incremental submodel
         incrementedLearningUpdates = AutoEncoderTrainer.trainIncremental(updated_serialized_data, streamed_last_row)
         #delete the streamed row of data for data privacy
