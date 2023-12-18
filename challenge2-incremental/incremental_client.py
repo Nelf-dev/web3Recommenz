@@ -18,7 +18,11 @@ def post_server_data(params, segment, loss, epochs):
     data = {"params": params, "segment": segment, "loss": loss, "epochs": epochs}
     requests.post(server_location+"/post_data", json=data)
 
-csv_file_path = 'dataset.csv'
+csv_file_path = './data/video/node1_data.csv'
+data_set = pd.read_csv(csv_file_path)
+count = len(data_set)
+last_row = data_set.iloc[-1]
+pdb.set_trace()
 
 def main():
     epoch = 0
@@ -48,6 +52,8 @@ def main():
         data_set = pd.read_csv(csv_file_path)
         # Send data set to local model
         loss = AutoEncoderTrainer.train(model, 1, segment, data_set)
+        # Delete data_set for privacy protections
+        del data_set
         # Assuming the training function for our model returns noisy updates to the weight
         # not sure how to just send noisy local model weights updates, maybe as a new parameter?
         post_server_data(base64.b64encode(pickle.dumps(model.state_dict())).decode("utf-8"), segment, loss, epochs)
@@ -55,27 +61,45 @@ def main():
         time.sleep(10)
 
         # Get updated data that has been AVGed by the server
-        completed_json_file = get_server_data() # WHAT DOES THIS LOOK LIKE?
+        completed_json_file = get_avg_data()
 
         ###STEP 2###
         # subModel2Updates = send completed JSON data to ARFED submodel
         arfed_weights = AutoEncoderTrainer.trainARFED(completed_json_file)
 
-        ###STEP 3###
         # newWeights = subtract previousweights with subModel2Updates.weights
-        new_weights = previous_weights - arfed_weights
+        new_weights = [a - b for a, b in zip(previous_weights, arfed_weights)]
+
+        #  post the new global model weights 
+        post_server_data(new_weights)
+
+
+        ###STEP 3###
+        # get request to get the new global model weights
+        updated_serialized_data, updated_epochs, updated_current_weights = get_server_data()
+        # if new_data_set.count > old_data_set.count:
+        streamed_data = './data/video/node1_incremental_1.csv'
+        streamed_row = pd.read_csv(streamed_data)
+        streamed_last_row = data_set.iloc[-1]
 
         # subModel3Updates = send newWeights into incremental submodel
-        incrementedLearning = AutoEncoderTrainer.trainIncremental(new_weights)
+        incrementedLearningUpdates = AutoEncoderTrainer.trainIncremental(updated_serialized_data, streamed_last_row)
+        #delete the streamed row of data for data privacy
+        del streamed_last_row
 
-        # if new_data_set.count > old_data_set.count:
-            # identify the new row of data
-            # noisyIncrementalUpdate = send this data to incremental submodel
-            # post_server_data(noisyIncrementalUpdate)
-            # time.sleep(10)
-            # get_server_data()
-            # send completed JSON data to ARFED submodel
-            # repeat until no new data
+        # Send updates to server
+        post_server_data(incrementedLearningUpdates)
+
+        #wait 10 seconds for other clients to also send their incremental updates
+        time.sleep(10)
+
+        # get all noisy incremental learning model updates for ALL clients
+        update_completed_json_file = get_avg_data()
+
+        # ARFED the JSON file of all the model updates
+        arfed_weights = AutoEncoderTrainer.trainARFED(completed_json_file)
+
+        # repeat this if there is another new row of data
 
 
 
