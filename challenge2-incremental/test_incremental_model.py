@@ -19,6 +19,9 @@ learn.lr = 0.1
 # Define loss function
 learn.loss_func = nn.CrossEntropyLoss()
 
-# learn.predict("the mountain peaks in china are covered with green grass")
+learn.predict("The chicken is delicious")
 
 learn.save('model')
+
+model_path = r'models'
+state_dict = torch.load(f'{model_path}\\model.pth')
