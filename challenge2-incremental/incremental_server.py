@@ -9,8 +9,11 @@ from incremental_model import AutoEncoderTrainer
 # from incremental_model import generic_model
 import os
 import pdb
+import numpy as np
 
 PORT = os.environ.get("PORT", 4001)
+
+updated_weights_from_clients = []
 
 class IncrementalExample(SimpleServer):
     manifest = {"name": "IncrementalExample",
@@ -21,6 +24,11 @@ class IncrementalExample(SimpleServer):
                }
     def __init__(self):
         pass
+
+    def federated_avg:
+        arrays = np.array(updated_weights_from_clients)
+        # Calculate the federated average
+        return np.mean(arrays, axis=0)
 
     @aim_uri(uri="/get_data", methods=["GET"],
              endpoint_manifest = {
@@ -71,6 +79,7 @@ class IncrementalExample(SimpleServer):
         data = await request.json()
         # result = generic_model.post_data(data['params'], data['loss'], data['epochs'])
         result = 1111
+        # NEED TO DECODE WEIGHTS and add to update_weights_from_clients
         return JSONResponseCORS({"updated": result})
 
 def main():

@@ -1,9 +1,11 @@
 # This import under here is like a debugger
-import pdb
+import numpy as np
 
-x = 1
-y = 2
+arrays = np.array([[3, 3, 3, 3, 3],
+                   [2, 2, 2, 2, 2],
+                   [1, 1, 1, 1, 1]])
 
-# This is basically the debugger statement
-pdb.set_trace()
-print('hello world')
+# Calculate the federated average
+average_result = np.mean(arrays, axis=0)
+
+print(average_result)
