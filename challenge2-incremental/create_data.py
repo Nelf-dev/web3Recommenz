@@ -30,22 +30,14 @@ df = df.reindex(columns=col_order)
 df_n1 = pd.concat([df.query('Node == "node1"').iloc[:9,:], df.query('Node == "node1"').iloc[12:15,:]])
 df_n2 = pd.concat([df.query('Node == "node2"').iloc[:9,:], df.query('Node == "node2"').iloc[12:15,:]])
 
-# Drop values from Sentiment column for rows 12:14
-df_n1.loc[12:14, 'Sentiment'] = ''
-df_n2.loc[27:29, 'Sentiment'] = ''
-
-# Export data to csv files
-df_n1.to_csv(f'{export_path}\\node1_data.csv', index=False)
-df_n2.to_csv(f'{export_path}\\node2_data.csv', index=False)
-
 # Export data to csv files
 df_n1.to_csv(f'{export_path}\\node1_data.csv', index=False)
 df_n2.to_csv(f'{export_path}\\node2_data.csv', index=False)
 
 # Export the incremental learning data to csv files
-df.query('Node == "node1"').iloc[:10,:].to_csv(f'{export_path}\\node1_incremental_1.csv', index=False)
-df.query('Node == "node1"').iloc[:11,:].to_csv(f'{export_path}\\node1_incremental_2.csv', index=False)
-df.query('Node == "node1"').iloc[:12,:].to_csv(f'{export_path}\\node1_incremental_3.csv', index=False)
-df.query('Node == "node2"').iloc[:10,:].to_csv(f'{export_path}\\node2_incremental_1.csv', index=False)
-df.query('Node == "node2"').iloc[:11,:].to_csv(f'{export_path}\\node2_incremental_2.csv', index=False)
-df.query('Node == "node2"').iloc[:12,:].to_csv(f'{export_path}\\node2_incremental_3.csv', index=False)
+df.query('Node == "node1"').iloc[[10],:].to_csv(f'{export_path}\\node1_incremental_1.csv', index=False)
+df.query('Node == "node1"').iloc[[11],:].to_csv(f'{export_path}\\node1_incremental_2.csv', index=False)
+df.query('Node == "node1"').iloc[[12],:].to_csv(f'{export_path}\\node1_incremental_3.csv', index=False)
+df.query('Node == "node2"').iloc[[10],:].to_csv(f'{export_path}\\node2_incremental_1.csv', index=False)
+df.query('Node == "node2"').iloc[[11],:].to_csv(f'{export_path}\\node2_incremental_2.csv', index=False)
+df.query('Node == "node2"').iloc[[12],:].to_csv(f'{export_path}\\node2_incremental_3.csv', index=False)
