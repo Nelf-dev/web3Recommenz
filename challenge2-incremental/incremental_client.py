@@ -14,6 +14,11 @@ def get_server_data():
     data = requests.get(server_location+"/get_data").json()
     return data['params'], data['epochs'], data['current_weights']
 
+def get_initial_server_data():
+    response = requests.get(server_location+"/get_initial_server_data")
+    state_dict = response.json()
+    return state_dict
+
 def post_server_data(params, segment, loss, epochs):
     data = {"params": params, "segment": segment, "loss": loss, "epochs": epochs}
     requests.post(server_location+"/post_data", json=data)
@@ -22,7 +27,7 @@ csv_file_path = './data/video/node1_data.csv'
 data_set = pd.read_csv(csv_file_path)
 count = len(data_set)
 last_row = data_set.iloc[-1]
-pdb.set_trace()
+
 
 def main():
     epoch = 0
@@ -30,6 +35,8 @@ def main():
     client_id = sys.argv[2]
 
     while True:
+        initial_data = get_initial_server_data()
+        pdb.set_trace()
         ###STEP 1###
         # Get Hard Coded weights from Server and save it to a variable(previous weights) if epoch = 0
         serialized_data, epochs, current_weights = get_server_data()
