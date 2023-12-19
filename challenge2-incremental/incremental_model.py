@@ -1,220 +1,150 @@
-"""
-    Basic pytorch autoencoder, based on code from:
-
-    https://www.geeksforgeeks.org/implementing-an-autoencoder-in-pytorch/
-"""
+import pandas as pd
+import numpy as np
 import torch
-from torchvision import datasets
-from torchvision import transforms
-import pickle
-import base64
-import random
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import RandomOverSampler
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from gensim.models import Word2Vec
+from opacus import PrivacyEngine
 
-#set a seed for reproducibillity (deterministic algorithms)
-def reset_seeds():
-    random.seed(0)
-    torch.manual_seed(0)
+# Set random seed for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
 
-reset_seeds()
-torch.use_deterministic_algorithms(True)
+# Function to check and balance the dataset
+def balance_dataset(df):
+    sentiment_counts = df['Sentiment'].value_counts()
+    if any(sentiment_counts != sentiment_counts[0]):
+        ros = RandomOverSampler(random_state=42)
+        df_balanced, _ = ros.fit_resample(df, df['Sentiment'])
+        return df_balanced
+    return df
 
-#if using numpy, you may have to set its seed as well
-#import numpy as np
-#np.random.seed(0)
+# Text preprocessing steps
+def preprocess_text(text):
+    # Text cleaning
+    text = text.lower()
+    
+    # Tokenization
+    tokens = word_tokenize(text)
 
-#cuda gpu settings:
-#torch.backends.cudnn.benchmark = False
+    # Normalization (using lemmatization here)
+    lemmatizer = WordNetLemmatizer()
+    normalized_tokens = [lemmatizer.lemmatize(token) for token in tokens]
 
-def get_dataset(segment):
-    # Transforms images to a PyTorch Tensor
-    tensor_transform = transforms.ToTensor()
+    # Stop words removal
+    stop_words = set(stopwords.words('english'))
+    filtered_tokens = [token for token in normalized_tokens if token not in stop_words]
 
-    # Download the MNIST Dataset
-    dataset = datasets.MNIST(root = "./data",
-                             train = True,
-                             download = True,
-                             transform = tensor_transform)
-    evens = list(range(0, len(dataset), 2))
-    odds = list(range(1, len(dataset), 2))
+    return filtered_tokens
 
-    if segment == 0:
-        trainset = torch.utils.data.Subset(dataset, evens)
-    else:
-        trainset = torch.utils.data.Subset(dataset, odds)
+# Function to create embeddings
+def create_embeddings(sentences):
+    model = Word2Vec(sentences, vector_size=100, window=5, min_count=1, workers=4)
+    return model
 
+# Function to do padding
+def pad_or_truncate_sequences(sequences, fixed_length, vector_size):
+    # Initialize a zero-filled 3D array: number of sequences x fixed_length x vector_size
+    adjusted_sequences = np.zeros((len(sequences), fixed_length, vector_size))
+    
+    for i, sequence in enumerate(sequences):
+        sequence_length = len(sequence)
+        if sequence_length > fixed_length:
+            # Truncate the sequence
+            adjusted_sequences[i, :, :] = np.array(sequence[:fixed_length])
+        else:
+            # Pad the sequence with zeros
+            adjusted_sequences[i, :sequence_length, :] = np.array(sequence)
+    
+    return adjusted_sequences
 
-    loader = torch.utils.data.DataLoader(trainset, batch_size=16,
-                                         shuffle=False, num_workers=2)
-    return loader
-
-
-class AE(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        # Building an linear encoder with Linear
-        # layer followed by Relu activation function
-        # 784 ==> 9
-        self.encoder = torch.nn.Sequential(
-            torch.nn.Linear(28 * 28, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 36),
-            torch.nn.ReLU(),
-            torch.nn.Linear(36, 18),
-            torch.nn.ReLU(),
-            torch.nn.Linear(18, 9)
-        )
-
-        # Building an linear decoder with Linear
-        # layer followed by Relu activation function
-        # The Sigmoid activation function
-        # outputs the value between 0 and 1
-        # 9 ==> 784
-        self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(9, 18),
-            torch.nn.ReLU(),
-            torch.nn.Linear(18, 36),
-            torch.nn.ReLU(),
-            torch.nn.Linear(36, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 28 * 28),
-            torch.nn.Sigmoid()
-        )
+# Custom Neural Network Model
+class SentimentAnalysisModel_global(nn.Module):
+    def __init__(self, input_size):
+        super(SentimentAnalysisModel_global, self).__init__()
+        self.fc1 = nn.Linear(input_size, 2)
+        self.fc2 = nn.Linear(2, 3)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.3)
+        # Replace BatchNorm with GroupNorm
+        self.groupnorm = nn.GroupNorm(1, 2)  # GroupNorm with 1 group and 2 channels
 
     def forward(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return decoded
+        x = self.relu(self.fc1(x))
+        # x = self.batchnorm(x)
+        x = self.groupnorm(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
 
-    
-class AutoEncoderTrainer:
-    epochs = 0
-    segments_results = [{"updated": False, "losses": []}, 
-                        {"updated": False, "losses": []}]
-    model = AE()
-    new_model = AE()
-    updates = 0
+def submodel_one(global_parameters_path, df):
+    # Step 1: Check and balance dataset
+    df = balance_dataset(df)
 
-    @classmethod
-    def get_data(cls):
-        serialized = base64.b64encode(pickle.dumps(cls.model.state_dict())).decode("utf-8")
-        return serialized, cls.epochs
+    # Step 2: Preprocess text data
+    df['processed_caption'] = df['Caption'].apply(preprocess_text)
+    sentences = df['processed_caption'].tolist()
+    word2vec_model = create_embeddings(sentences)
 
-    @classmethod
-    def post_data(cls, parameters_dict, segment, loss, epoch=None):
-        if cls.segments_results[segment]['updated'] == True:
-            return False
+    vectorized_sentences = [[word2vec_model.wv[word] for word in sentence if word in word2vec_model.wv] for sentence in sentences]
 
-        if loss not in cls.segments_results[segment]['losses']:
-            cls.segments_results[segment]['losses'].append(loss)
-            return True
+    # Adjusting sequences to the fixed input size of 100
+    # Assuming each word vector from Word2Vec is of size 100
+    vector_size = 100
+    fixed_input_size = 100
+    modified_input_size = fixed_input_size * vector_size  # 10000
+    adjusted_sequences = pad_or_truncate_sequences(vectorized_sentences, fixed_input_size, vector_size)
 
-        #We have a confirmed reproduced loss for this segment, so update the model.
-        cls.segments_results[segment]['updated'] = True
+    # Flatten the sequences for input to the neural network
+    adjusted_sequences = adjusted_sequences.reshape(len(adjusted_sequences), -1)
 
-        state_dict = pickle.loads(base64.b64decode(parameters_dict.encode("utf-8")))
-        model_dict = cls.new_model.state_dict()
-        for key in model_dict:
-            if cls.updates == 0:
-                model_dict[key] = state_dict[key]/2;
-            else:
-                model_dict[key] = model_dict[key]+state_dict[key]/2;
-        cls.new_model.load_state_dict(model_dict)
+    # Convert target variable to numerical format
+    target = pd.get_dummies(df['Sentiment']).values
 
-        if cls.updates == 1:
-            cls.epochs += 1
-            cls.updates = 0 
-            cls.model = cls.new_model
-            cls.new_model = AE()
-            cls.segments_results = [{"updated": False, "losses": []}, 
-                                    {"updated": False, "losses": []}]
-        else:
-            cls.updates+=1
-        return True
+    # Split dataset
+    X_train, X_test, y_train, y_test = train_test_split(adjusted_sequences, target, test_size=0.25, random_state=33)
 
-    @classmethod
-    def train(cls, model, epochs, segment):
-        loader = get_dataset(segment)
-        # Validation using MSE Loss function
-        loss_function = torch.nn.MSELoss()
- 
-        # Using an Adam Optimizer with lr = 0.1
-        optimizer = torch.optim.Adam(model.parameters(),
-                             lr = 1e-1,
-                             weight_decay = 1e-8)
-        for epoch in range(epochs):
-            losses = []
-            for (image, _) in loader:
-              # Reshaping the image to (-1, 784)
-              image = image.reshape(-1, 28*28)
-       
-              # Output of Autoencoder
-              reconstructed = model(image)
-       
-              # Calculating the loss function
-              loss = loss_function(reconstructed, image)
-       
-              # The gradients are set to zero,
-              # the gradient is computed and stored.
-              # .step() performs parameter update
-              optimizer.zero_grad()
-              loss.backward()
-              optimizer.step()
-       
-              # Storing the losses in a list for plotting
-              losses.append(loss)
-            total_loss = sum(losses)/len(losses)
-        return total_loss.tolist()
+    # Convert to PyTorch tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
 
+    # DataLoader
+    train_data = TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = DataLoader(train_data, batch_size=64)
 
-def main():
-    while True:
-        #client 1 here
-        reset_seeds()
-        model1 = AE()
-        serialized_data, epochs = AutoEncoderTrainer.get_data()
-        state_dict = pickle.loads(base64.b64decode(serialized_data.encode('utf-8')))
-        model1.load_state_dict(state_dict)
-        loss = AutoEncoderTrainer.train(model1, 1, 0)
-        AutoEncoderTrainer.post_data(base64.b64encode(pickle.dumps(model1.state_dict())).decode('utf-8'), 0, loss)
+    # Load model with pretrained parameters
+    model = SentimentAnalysisModel_global(input_size=modified_input_size)
+    model.load_state_dict(torch.load(global_parameters_path))
+    model.train()
 
-        print("Client: 1 Epochs:", epochs, "Loss:", loss, "Segment: 0")
+    # Step 3: Train model with differential privacy
+    optimizer = optim.Adam(model.parameters(), lr=0.1)
+    criterion = nn.CrossEntropyLoss()
+    privacy_engine = PrivacyEngine()
+    model, optimizer, train_loader = privacy_engine.make_private(
+        module=model,
+        optimizer=optimizer,
+        data_loader=train_loader,
+        noise_multiplier=1.0,
+        max_grad_norm=1.0
+    )
 
-        reset_seeds()
-        model2 = AE()
-        serialized_data, epochs = AutoEncoderTrainer.get_data()
-        state_dict = pickle.loads(base64.b64decode(serialized_data.encode('utf-8')))
+    # Training loop
+    for epoch in range(10):
+        for inputs, targets in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
-        model2.load_state_dict(state_dict)
-        loss = AutoEncoderTrainer.train(model2, 1, 1)
-        AutoEncoderTrainer.post_data(base64.b64encode(pickle.dumps(model2.state_dict())).decode('utf-8'), 1, loss)
-        print("Client: 2 Epochs:", epochs, "Loss:", loss, "Segment: 1")
-
-        reset_seeds()
-        model3 = AE()
-        serialized_data, epochs = AutoEncoderTrainer.get_data()
-        state_dict = pickle.loads(base64.b64decode(serialized_data.encode('utf-8')))
-        model3.load_state_dict(state_dict)
-        loss = AutoEncoderTrainer.train(model3, 1, 0)
-        AutoEncoderTrainer.post_data(base64.b64encode(pickle.dumps(model3.state_dict())).decode('utf-8'), 0, loss)
-        print("Client: 3 Epochs:", epochs, "Loss:", loss, "Segment: 0")
-
-        reset_seeds()
-        model4 = AE()
-        serialized_data, epochs = AutoEncoderTrainer.get_data()
-        state_dict = pickle.loads(base64.b64decode(serialized_data.encode('utf-8')))
-        model4.load_state_dict(state_dict)
-        loss = AutoEncoderTrainer.train(model4, 1, 1)
-        AutoEncoderTrainer.post_data(base64.b64encode(pickle.dumps(model4.state_dict())).decode('utf-8'), 1, loss)
-        print("Client: 4 Epochs:", epochs, "Loss:", loss, "Segment: 1")
-
-    import pdb
-    pdb.set_trace()
-
-
-if __name__=='__main__':
-    main()
+    # Return updated model parameters
+    return model.state_dict()
