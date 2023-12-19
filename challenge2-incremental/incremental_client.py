@@ -35,6 +35,11 @@ def get_federated_average():
 def update_global_model(updated_weight):
     response = requests.post(server_location+"/update_global_model", json=updated_weight)
 
+def get_global_weights():
+    response = requests.get(server_location+"/get_global_weights")
+    weights = response.json()
+    return weights
+
 # Convert data set to Pandas dataframe
 def get_data_set():
     csv_file_path = './data/video/node1_data.csv'
@@ -90,8 +95,11 @@ def main():
         update_global_model(subtracted_weights)
 
         # ###STEP 3###
-        # # get request to get the new global model weights
-        # updated_serialized_data, updated_epochs, updated_current_weights = get_server_data()
+        # get request to get the new global model weights
+        global_weights = get_global_weights()
+        # model.load_state_dict(initial_params)
+
+
         # # if new_data_set.count > old_data_set.count:
         # streamed_data = './data/video/node1_incremental_1.csv'
         # streamed_row = pd.read_csv(streamed_data)

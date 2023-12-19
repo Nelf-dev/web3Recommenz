@@ -33,6 +33,11 @@ def update_global_model(data: dict):
     #Update global model
     return 0
 
+@app.get("/get_global_weights")
+def update_global_model(data: dict):
+    #return global weights
+    return torch.load('./models/model.pth')
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(PORT))
