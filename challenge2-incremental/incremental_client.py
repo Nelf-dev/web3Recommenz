@@ -7,29 +7,46 @@ import base64
 import pdb
 import pandas as pd
 import json
+from collections import OrderedDict
+import torch
+
 
 # Assume this is leos model
-import submodel_one
+import incremental_model
 from example_weights import weight1, weight2
 
 server_location = "http://localhost:4001"
+
+def json_to_ordered_dict(json_str):
+    json_data = json.loads(json_str)
+    # If the original values were torch tensors, convert them back
+    for key, value in json_data.items():
+        if isinstance(value, list):
+            json_data[key] = torch.tensor(value)
+
+    ordered_dict = OrderedDict(json_data)
+    return ordered_dict
+
+def ordered_dict_to_json(ordered_dict):
+    model_state_dict_serializable = {key: value.tolist() if isinstance(value, torch.Tensor) else value for key, value in ordered_dict.items()}
+    return json.dumps(model_state_dict_serializable)
 
 # def get_server_data():
 #     data = requests.get(server_location+"/get_data").json()
 #     return data['params'], data['epochs'], data['current_weights']
 
 def get_initial_server_data():
-    response = requests.get(server_location+"/get_initial_server_data")
-    return response.json()
+    # response = requests.get(server_location+"/get_initial_server_data")
+    return './models/global_parameters.pt'
 
 def post_server_data(updated_weight):
-    data = updated_weight
-    requests.post(server_location+"/post_server_data", json=data)
+    formatted_data = ordered_dict_to_json(updated_weight)
+    requests.post(server_location+"/post_server_data", data=formatted_data)
 
-def get_federated_average():
-    response = requests.get(server_location+"/get_federated_average")
-    federated_average = response.json()
-    return federated_average
+def get_all_weights():
+    response = requests.get(server_location+"/get_all_weights")
+    all_weights = response.json()
+    return all_weights
 
 def update_global_model(updated_weight):
     requests.post(server_location+"/update_global_model", json=updated_weight)
@@ -48,29 +65,32 @@ def get_data_set():
 def main():
     while True:
         ###STEP 1###
-        # Get Hard Coded weights from Server
-        initial_params = get_initial_server_data()
-        pdb.set_trace()
-        model = submodel_one
-        # #load weights into the local model
-        # # Send data set to local model
+        global_parameters_path = get_initial_server_data()
+        model = incremental_model
         training_data = get_data_set()
-        updated_weights = model.submodel_one(initial_params,training_data)
-        # # Delete data_set for privacy protections
+
+        updated_weights = model.submodel_one(global_parameters_path, training_data)
         del training_data
-        # Assuming the training function for our model returns noisy updates to the weight
-        post_server_data(initial_params) # may need to convert if wrong format
+        post_server_data(updated_weights)
+        post_server_data(updated_weights)
         # Wait ten seconds - So that other nodes can also update the server
         time.sleep(0.5)
 
-        # Get federated_average created from server
-        averaged_weights = get_federated_average()
+        all_weights = get_all_weights()
+        all_weights_formatted_to_ordered_dict = [];
+
+        for weight in all_weights:
+            # convert dict to json_str
+            json_str = json.dumps(weight, indent=2)
+            formatted_weight = json_to_ordered_dict(json_str)
+            all_weights_formatted_to_ordered_dict.append(formatted_weight)
+
+        pdb.set_trace()
 
         # # subModel2Updates = send completed JSON data to ARFED submodel
-        arfed_weights = model.submodel_two(averaged_weights)
+        arfed_weights = model.submodel_two()
 
         # ###STEP 2###
-        pdb.set_trace()
 
         # ###STEP 3###
         # get request to get the new global model weights
