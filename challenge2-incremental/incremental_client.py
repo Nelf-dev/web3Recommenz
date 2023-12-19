@@ -32,6 +32,9 @@ def get_federated_average():
     federated_average = response.json()
     return federated_average
 
+def update_global_model(updated_weight):
+    response = requests.post(server_location+"/update_global_model", json=updated_weight)
+
 # Convert data set to Pandas dataframe
 def get_data_set():
     csv_file_path = './data/video/node1_data.csv'
@@ -49,10 +52,10 @@ def subtract_dicts(dict1, dict2):
             if all(isinstance(v, dict) for v in value1):
                 result[key] = [subtract_dicts(v1, v2) for v1, v2 in zip(value1, dict2.get(key, []))]
             else:
-                result[key] = [v1 - v2 for v1, v2 in zip(value1, dict2.get(key, []))]
+                result[key] = [v1 - v2 if key == 'weight' else v1 for v1, v2 in zip(value1, dict2.get(key, []))]
         else:
             # Subtract numeric values or use the value from dict1 if key is not in dict2
-            result[key] = value1 - dict2.get(key, 0)
+            result[key] = value1 - dict2.get(key, 0) if key == 'weight' else value1
     return result
 
 
@@ -83,10 +86,8 @@ def main():
         # ###STEP 2###
         # # newWeights = subtract previousweights with subModel2Updates.weights
         subtracted_weights = subtract_dicts(weight1(), weight2())
-        pdb.set_trace()
         # #  post the new global model weights 
-        post_server_data(subtracted_weights)
-
+        update_global_model(subtracted_weights)
 
         # ###STEP 3###
         # # get request to get the new global model weights

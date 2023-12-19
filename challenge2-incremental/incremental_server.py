@@ -24,7 +24,14 @@ def federated_avg():
     # arrays = np.array(captured_weights)
     # # Calculate the federated average
     # return np.mean(arrays, axis=0)
+    print(f"Weights Captured: {len(captured_weights)}")
     return torch.load('./models/model.pth') #Assume it returns 
+
+@app.post("/update_global_model")
+def update_global_model(data: dict):
+    print(data)
+    #Update global model
+    return 0
 
 if __name__ == '__main__':
     import uvicorn
