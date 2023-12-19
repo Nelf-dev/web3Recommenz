@@ -57,10 +57,10 @@ def subtract_dicts(dict1, dict2):
             if all(isinstance(v, dict) for v in value1):
                 result[key] = [subtract_dicts(v1, v2) for v1, v2 in zip(value1, dict2.get(key, []))]
             else:
-                result[key] = [v1 - v2 if key == 'weight' else v1 for v1, v2 in zip(value1, dict2.get(key, []))]
+                result[key] = [v1 - v2 for v1, v2 in zip(value1, dict2.get(key, []))]
         else:
             # Subtract numeric values or use the value from dict1 if key is not in dict2
-            result[key] = value1 - dict2.get(key, 0) if key == 'weight' else value1
+            result[key] = value1 - dict2.get(key, 0)
     return result
 
 

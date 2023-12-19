@@ -34,7 +34,7 @@ def update_global_model(data: dict):
     return 0
 
 @app.get("/get_global_weights")
-def update_global_model(data: dict):
+def get_global_model():
     #return global weights
     return torch.load('./models/model.pth')
 
