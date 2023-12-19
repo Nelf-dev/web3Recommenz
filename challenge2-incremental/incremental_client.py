@@ -33,7 +33,7 @@ def get_federated_average():
     return federated_average
 
 def update_global_model(updated_weight):
-    response = requests.post(server_location+"/update_global_model", json=updated_weight)
+    requests.post(server_location+"/update_global_model", json=updated_weight)
 
 def get_global_weights():
     response = requests.get(server_location+"/get_global_weights")
@@ -57,15 +57,16 @@ def subtract_dicts(dict1, dict2):
             if all(isinstance(v, dict) for v in value1):
                 result[key] = [subtract_dicts(v1, v2) for v1, v2 in zip(value1, dict2.get(key, []))]
             else:
-                result[key] = [v1 - v2 for v1, v2 in zip(value1, dict2.get(key, []))]
+                result[key] = [v1 - v2 if key == 'weight' or key == 'bias' else v1 for v1, v2 in zip(value1, dict2.get(key, []))]
         else:
             # Subtract numeric values or use the value from dict1 if key is not in dict2
-            result[key] = value1 - dict2.get(key, 0)
+            result[key] = value1 - dict2.get(key, 0) if key == 'weight' or key == 'bias' else value1
     return result
-
 
 def main():
     while True:
+        # averaged =average_dicts([weight1(), weight2()])
+        # pdb.set_trace()
         ###STEP 1###
         # Get Hard Coded weights from Server
         initial_params = get_initial_server_data()
@@ -91,6 +92,7 @@ def main():
         # ###STEP 2###
         # # newWeights = subtract previousweights with subModel2Updates.weights
         subtracted_weights = subtract_dicts(weight1(), weight2())
+        pdb.set_trace()
         # #  post the new global model weights 
         update_global_model(subtracted_weights)
 
