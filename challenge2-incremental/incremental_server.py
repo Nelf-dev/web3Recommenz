@@ -19,11 +19,12 @@ def get_state_dict():
 def post_data(data: dict):
     captured_weights.append(data)
 
-@app.post("/get_federated_average")
+@app.get("/get_federated_average")
 def federated_avg():
-    arrays = np.array(captured_weights)
-    # Calculate the federated average
-    return np.mean(arrays, axis=0)
+    # arrays = np.array(captured_weights)
+    # # Calculate the federated average
+    # return np.mean(arrays, axis=0)
+    return torch.load('./models/model.pth') #Assume it returns 
 
 if __name__ == '__main__':
     import uvicorn
