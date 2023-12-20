@@ -134,7 +134,7 @@ class SentimentAnalysisModel_global(nn.Module):
         x = self.fc2(x)
         return x
 
-def submodel_one(global_parameters_path, df):
+def submodel_one(state_dict, df):
     # Step 1: Check and balance dataset
     df = balance_dataset(df)
 
@@ -173,7 +173,7 @@ def submodel_one(global_parameters_path, df):
 
     # Load model with pretrained parameters
     model = SentimentAnalysisModel_global(input_size=modified_input_size)
-    model.load_state_dict(torch.load(global_parameters_path))
+    model.load_state_dict(state_dict)
     model.train()
 
     # Step 3: Train model with differential privacy

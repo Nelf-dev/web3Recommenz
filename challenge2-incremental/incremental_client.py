@@ -13,7 +13,6 @@ import torch
 
 # Assume this is leos model
 import incremental_model
-from example_weights import weight1, weight2
 
 server_location = "http://localhost:4001"
 
@@ -32,8 +31,8 @@ def ordered_dict_to_json(ordered_dict):
     return json.dumps(model_state_dict_serializable)
 
 def get_initial_server_data():
-    # response = requests.get(server_location+"/get_initial_server_data")
-    return './models/global_parameters.pt'
+    response = requests.get(server_location+"/get_initial_server_data")
+    return json_to_ordered_dict(response.json())
 
 def post_server_data(updated_weight):
     formatted_data = ordered_dict_to_json(updated_weight)
@@ -63,7 +62,7 @@ def main():
     while True:
         # STEP 1 
         # Get Initial Global Model Weights
-        global_parameters_path = get_initial_server_data()
+        initial_weights = get_initial_server_data()
         model = incremental_model
 
         # Get Training Data Set
@@ -73,7 +72,7 @@ def main():
         synthetic_local_text_data = model.submodel_zero(training_data)
 
         # Load Weights and Training Data and Process it through submodel One
-        updated_weights = model.submodel_one(global_parameters_path, training_data)
+        updated_weights = model.submodel_one(initial_weights, training_data)
 
         # Delete Training Data to Ensure Privacy
         del training_data
