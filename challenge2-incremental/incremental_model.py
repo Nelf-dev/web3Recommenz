@@ -6,16 +6,61 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
+import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from gensim.models import Word2Vec
 from opacus import PrivacyEngine
 import pdb
+import random
+from collections import OrderedDict
+from typing import List
+
+# Download nltk module
+nltk.download('punkt')
 
 # Set random seed for reproducibility
 torch.manual_seed(42)
 np.random.seed(42)
+
+def build_markov_model(data, n_gram=2):
+    model = {}
+    for sentence in data:
+        sentence = word_tokenize(sentence.lower())
+        for i in range(len(sentence) - n_gram):
+            gram = tuple(sentence[i:i + n_gram])
+            next_word = sentence[i + n_gram]
+            if gram not in model:
+                model[gram] = {}
+            if next_word not in model[gram]:
+                model[gram][next_word] = 0
+            model[gram][next_word] += 1
+    return model
+
+def generate_sentence(model, max_length=20):
+    sentence = []
+    n_gram = list(model.keys())[random.randint(0, len(model) - 1)]
+    sentence.extend(n_gram)
+    for _ in range(max_length - len(n_gram)):
+        last_gram = tuple(sentence[-len(n_gram):])
+        if last_gram in model:
+            next_words = model[last_gram]
+            next_word = random.choices(list(next_words.keys()), weights=next_words.values())[0]
+            sentence.append(next_word)
+        else:
+            break
+    return ' '.join(sentence)
+
+def submodel_zero(dataset):
+    captions = dataset['Caption'].tolist()
+    markov_model = build_markov_model(captions)
+
+    synthesized_captions = []
+    for _ in range(5):
+        synthesized_captions.append(generate_sentence(markov_model))
+
+    return pd.DataFrame(synthesized_captions, columns=['Caption'])
 
 # Function to check and balance the dataset
 def balance_dataset(df):
@@ -149,3 +194,42 @@ def submodel_one(global_parameters_path, df):
 
     # Return updated model parameters
     return model.state_dict()
+
+
+def submodel_two(models: List[OrderedDict]) -> OrderedDict:
+    # Helper function to calculate IQR-based non-outliers for a list of values
+    def non_outlier_values(values):
+        q1, q3 = torch.quantile(torch.tensor(values), torch.tensor([0.25, 0.75]))
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        return [v for v in values if v >= lower_bound and v <= upper_bound]
+
+    # Initialize a dictionary to store sums and counts for averaging
+    sums = OrderedDict((key, torch.zeros_like(models[0][key])) for key in models[0])
+    counts = OrderedDict((key, torch.zeros_like(models[0][key])) for key in models[0])
+
+    # Iterate through each key and each element in the tensors
+    for key in models[0].keys():
+        for i in range(models[0][key].numel()):
+            # Extract the same element from all models
+            values = [model[key].view(-1)[i].item() for model in models]
+
+            # Calculate non-outlier values
+            non_outliers = non_outlier_values(values)
+
+            # Update sums and counts
+            if non_outliers:
+                sums[key].view(-1)[i] = sum(non_outliers)
+                counts[key].view(-1)[i] = len(non_outliers)
+
+    # Calculate element-wise averages for non-outliers and remove the '_module' prefix
+    averages = OrderedDict()
+    for key in sums.keys():
+        new_key = key.replace('_module.', '')  # Remove '_module.' prefix
+        with torch.no_grad():  # Ensure no gradient is computed during division
+            averages[new_key] = sums[key] / counts[key].clamp(min=1)  # Avoid division by zero
+
+    return averages
+
+
