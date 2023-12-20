@@ -13,6 +13,7 @@ PORT = os.environ.get("PORT", 4001)
 app = FastAPI()
 
 captured_weights = []
+captured_incremental_weights = []
 
 def ordered_dict_to_json(ordered_dict):
     model_state_dict_serializable = {key: value.tolist() if isinstance(value, torch.Tensor) else value for key, value in ordered_dict.items()}
@@ -39,9 +40,18 @@ def post_data(data: dict):
     captured_weights.append(data)
     print(f"Captured Weights: {len(captured_weights)}")
 
+@app.post("/post_server_incremental_data")
+def post_incremental_data(data: dict):
+    captured_incremental_weights.append(data)
+    print(f"Captured Incremental Weights: {len(captured_incremental_weights)}")
+
 @app.get("/get_all_weights")
 def get_all_weights():
     return captured_weights
+
+@app.get("/get_all_incremental_weights")
+def get_all_incremental_weights():
+    return captured_incremental_weights
 
 @app.post("/update_global_model")
 def update_global_model(data: dict):

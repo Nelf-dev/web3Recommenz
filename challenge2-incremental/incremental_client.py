@@ -38,8 +38,17 @@ def post_server_data(updated_weight):
     formatted_data = ordered_dict_to_json(updated_weight)
     requests.post(server_location+"/post_server_data", data=formatted_data)
 
+def post_server_incremental_data(updated_weight):
+    formatted_data = ordered_dict_to_json(updated_weight)
+    requests.post(server_location+"/post_server_incremental_data", data=formatted_data)
+
 def get_all_weights():
     response = requests.get(server_location+"/get_all_weights")
+    all_weights = response.json()
+    return all_weights
+
+def get_all_incremental_weights():
+    response = requests.get(server_location+"/get_all_incremental_weights")
     all_weights = response.json()
     return all_weights
 
@@ -57,6 +66,36 @@ def get_data_set():
     csv_file_path = './data/video/node1_data.csv'
     data_set = pd.read_csv(csv_file_path)
     return data_set
+
+def incremental_loop(model):
+        global_weights = get_global_weights()
+        formatted_global_weight = json_to_ordered_dict(global_weights)
+
+        # Append new row of data to synthetic_local_text_data
+        
+        # Send formatted_global_weight + Synthetic data to sub model 3
+        noisy_incremental_weights = model.submodel_three(formatted_global_weight, synthetic_local_text_data)
+
+        post_server_incremental_data(noisy_incremental_weights)
+
+        time.sleep(0.5)
+
+        # Get List of weights from server
+        all_incremental_weights = get_all_incremental_weights()
+        all_incremental_weights_formatted_to_ordered_dict = [];
+
+        # Loop through each weights the reformat back to ordered Dictionary type
+        for weight in all_incremental_weights:
+            json_str = json.dumps(weight, indent=2)
+            formatted_weight = json_to_ordered_dict(json_str)
+            all_incremental_weights_formatted_to_ordered_dict.append(formatted_weight)
+
+        # Process all formatted weights in submodel two get aggregated and arfed'd weights
+        arfed_incremental_weights = model.submodel_two(all_incremental_weights_formatted_to_ordered_dict)
+
+        # STEP 4
+        # Update global model in the server with new weights
+        update_global_model(arfed_incremental_weights)
 
 def main():
     while True:
@@ -96,44 +135,14 @@ def main():
         # Process all formatted weights in submodel two get aggregated and arfed'd weights
         arfed_weights = model.submodel_two(all_weights_formatted_to_ordered_dict)
 
+        pdb.set_trace()
         # Update global model in the server with new weights
         update_global_model(arfed_weights)
 
-        # ###STEP 3###
-        # get request to get the new global model weights
-        global_weights = get_global_weights()
-        formatted_global_weight = json_to_ordered_dict(global_weights)
-        pdb.set_trace()
-        
+        # ###STEP 3 + 4###
+        # Need to put into loop only run when there is new data
+        incremental_loop(model)
 
-
-        # # if new_data_set.count > old_data_set.count:
-        # streamed_data = './data/video/node1_incremental_1.csv'
-        # streamed_row = pd.read_csv(streamed_data)
-        # streamed_last_row = data_set.iloc[-1]
-
-        # updated_state_dict = pickle.loads(base64.b64decode(updated_serialized_data))
-        # #load weights into the local model
-        # model.load_state_dict(updated_state_dict)
-
-        # # subModel3Updates = send newWeights into incremental submodel
-        # incrementedLearningUpdates = AutoEncoderTrainer.trainIncremental(updated_serialized_data, streamed_last_row)
-        # #delete the streamed row of data for data privacy
-        # del streamed_last_row
-
-        # # Send updates to server
-        # post_server_data(incrementedLearningUpdates)
-
-        # #wait 10 seconds for other clients to also send their incremental updates
-        # time.sleep(10)
-
-        # # get all noisy incremental learning model updates for ALL clients
-        # update_completed_json_file = get_avg_data()
-
-        # # ARFED the JSON file of all the model updates
-        # arfed_weights = AutoEncoderTrainer.trainARFED(completed_json_file)
-
-        # # repeat this if there is another new row of data
 
 
 
