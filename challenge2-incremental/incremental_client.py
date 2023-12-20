@@ -49,7 +49,8 @@ def get_all_weights():
     return all_weights
 
 def update_global_model(updated_weight):
-    requests.post(server_location+"/update_global_model", json=updated_weight)
+    formatted_data = ordered_dict_to_json(updated_weight)
+    requests.post(server_location+"/update_global_model", data=formatted_data)
 
 def get_global_weights():
     response = requests.get(server_location+"/get_global_weights")
@@ -68,12 +69,12 @@ def main():
         global_parameters_path = get_initial_server_data()
         model = incremental_model
         training_data = get_data_set()
-
+        # send to submodel 0 and save synthetic data
+        # synthetic_local_text_data = model.submodel_zero(training_data)
         updated_weights = model.submodel_one(global_parameters_path, training_data)
         del training_data
         post_server_data(updated_weights)
-        post_server_data(updated_weights)
-        # Wait ten seconds - So that other nodes can also update the server
+        # Wait ten seconds - So that other clients can also update the server
         time.sleep(0.5)
 
         all_weights = get_all_weights()
@@ -85,12 +86,12 @@ def main():
             formatted_weight = json_to_ordered_dict(json_str)
             all_weights_formatted_to_ordered_dict.append(formatted_weight)
 
-        pdb.set_trace()
-
         # # subModel2Updates = send completed JSON data to ARFED submodel
-        arfed_weights = model.submodel_two()
+        arfed_weights = model.submodel_two(all_weights_formatted_to_ordered_dict)
 
         # ###STEP 2###
+        # send arfed_weights to server and update global weights in server file
+        update_global_model(updated_weights)
 
         # ###STEP 3###
         # get request to get the new global model weights

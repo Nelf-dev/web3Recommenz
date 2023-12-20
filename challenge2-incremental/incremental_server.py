@@ -18,6 +18,16 @@ def ordered_dict_to_json(ordered_dict):
     model_state_dict_serializable = {key: value.tolist() if isinstance(value, torch.Tensor) else value for key, value in ordered_dict.items()}
     return json.dumps(model_state_dict_serializable)
 
+def json_to_ordered_dict(json_str):
+    json_data = json.loads(json_str)
+    # If the original values were torch tensors, convert them back
+    for key, value in json_data.items():
+        if isinstance(value, list):
+            json_data[key] = torch.tensor(value)
+
+    ordered_dict = OrderedDict(json_data)
+    return ordered_dict
+
 @app.get("/get_initial_server_data")
 def get_state_dict():
     ordered_dict = torch.load('./models/global_parameters.pt')
@@ -35,15 +45,16 @@ def get_all_weights():
 
 @app.post("/update_global_model")
 def update_global_model(data: dict):
-    print(data)
-    #Update global model
-    return 0
+    file_path = './models/global_parameters.pt'
+    json_str = json.dumps(data, indent=2)
+    incoming_global_update = json_to_ordered_dict(json_str)
+    torch.save(incoming_global_update, file_path)
 
 @app.get("/get_global_weights")
 def get_global_model():
     #return global weights
     ordered_dict = torch.load('./models/global_parameters.pt')
-    formatted_data = format_dict(ordered_dict)
+    formatted_data = ordered_dict_to_json(ordered_dict)
     return formatted_data
 
 if __name__ == '__main__':
