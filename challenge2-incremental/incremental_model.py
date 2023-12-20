@@ -17,6 +17,11 @@ import random
 from collections import OrderedDict
 from typing import List
 
+# TODO: Nelson needs this import to download NLTK MODULE
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
 # Download nltk module
 nltk.download('punkt')
 
