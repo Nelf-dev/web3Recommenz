@@ -31,10 +31,6 @@ def ordered_dict_to_json(ordered_dict):
     model_state_dict_serializable = {key: value.tolist() if isinstance(value, torch.Tensor) else value for key, value in ordered_dict.items()}
     return json.dumps(model_state_dict_serializable)
 
-# def get_server_data():
-#     data = requests.get(server_location+"/get_data").json()
-#     return data['params'], data['epochs'], data['current_weights']
-
 def get_initial_server_data():
     # response = requests.get(server_location+"/get_initial_server_data")
     return './models/global_parameters.pt'
@@ -65,38 +61,48 @@ def get_data_set():
 
 def main():
     while True:
-        ###STEP 1###
+        # STEP 1 
+        # Get Initial Global Model Weights
         global_parameters_path = get_initial_server_data()
         model = incremental_model
+
+        # Get Training Data Set
         training_data = get_data_set()
-        # send to submodel 0 and save synthetic data
-        # synthetic_local_text_data = model.submodel_zero(training_data)
+
+        # Create synthetic data via submodel zero
+        synthetic_local_text_data = model.submodel_zero(training_data)
+
+        # Load Weights and Training Data and Process it through submodel One
         updated_weights = model.submodel_one(global_parameters_path, training_data)
+
+        # Delete Training Data to Ensure Privacy
         del training_data
+
+        # Upload updated weights to server
         post_server_data(updated_weights)
-        # Wait ten seconds - So that other clients can also update the server
+
+        # Await other clients that send their weights to server
         time.sleep(0.5)
 
+        # Get List of weights from server
         all_weights = get_all_weights()
         all_weights_formatted_to_ordered_dict = [];
 
+        # Loop through each weights the reformat back to ordered Dictionary type
         for weight in all_weights:
-            # convert dict to json_str
             json_str = json.dumps(weight, indent=2)
             formatted_weight = json_to_ordered_dict(json_str)
             all_weights_formatted_to_ordered_dict.append(formatted_weight)
 
-        # # subModel2Updates = send completed JSON data to ARFED submodel
+        # Process all formatted weights in submodel two get aggregated and arfed'd weights
         arfed_weights = model.submodel_two(all_weights_formatted_to_ordered_dict)
 
-        # ###STEP 2###
-        # send arfed_weights to server and update global weights in server file
-        update_global_model(updated_weights)
+        # Update global model in the server with new weights
+        update_global_model(arfed_weights)
 
         # ###STEP 3###
         # get request to get the new global model weights
         global_weights = get_global_weights()
-        # model.load_state_dict(initial_params)
 
 
         # # if new_data_set.count > old_data_set.count:
