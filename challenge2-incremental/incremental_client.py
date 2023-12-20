@@ -102,6 +102,9 @@ def main():
         # ###STEP 3###
         # get request to get the new global model weights
         global_weights = get_global_weights()
+        formatted_global_weight = json_to_ordered_dict(global_weights)
+        pdb.set_trace()
+        
 
 
         # # if new_data_set.count > old_data_set.count:
