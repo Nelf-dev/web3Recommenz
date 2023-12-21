@@ -12,11 +12,11 @@ This project is a collaborative effort by Leo, Corey, and Nelson. The team has s
 
 ## Sub-Challenges
 
-### 1. Federated Learning System
+### 1. Decentralized Federated Learning System
 
 In the Federated Learning System sub-challenge, our team aims to build a robust and scalable federated learning system. This involves developing algorithms and protocols that enable machine learning models to be trained across decentralized devices while preserving data privacy and security.
 
-### 2. Incremental Learning
+### 2. Decentralized Incremental Learning
 
 The Incremental Learning sub-challenge focuses on the development of models that can adapt and learn continuously as new data becomes available. Our team will explore techniques for updating the model with new information without discarding previously acquired knowledge, making it well-suited for scenarios with evolving datasets.
 
