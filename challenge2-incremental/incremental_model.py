@@ -68,6 +68,7 @@ def balance_dataset(df):
         return df_balanced
     return df
 
+
 # Text preprocessing steps
 def preprocess_text(text):
     # Text cleaning
@@ -228,7 +229,7 @@ def submodel_two(models: List[OrderedDict]) -> OrderedDict:
 
     return averages
 
-def submodel_three(dataset, seed=13):   # RANDOM SEEDS 13 & 18 GIVES SYNTHESIZED CAPTIONS WITH SENTIMENT = GOOD
+def submodel_three(dataset, seed=36):   # RANDOM SEEDS 13 & 18 GIVES SYNTHESIZED CAPTIONS WITH SENTIMENT = GOOD MAC USERS = 31,36
     # Set the random seed for reproducibility
     random.seed(seed)
 
@@ -242,7 +243,7 @@ def submodel_three(dataset, seed=13):   # RANDOM SEEDS 13 & 18 GIVES SYNTHESIZED
     return pd.DataFrame(synthesized_captions, columns=['Caption'])
 
 
-def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental_1_df):
+def submodel_four(global_parameters, synth_local_text_df, node1_incremental_1_df):
     # Adjusting sequences to the fixed input size of 100
     # Assuming each word vector from Word2Vec is of size 100
     vector_size = 100
@@ -251,7 +252,7 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
     
     # Load model with pretrained parameters
     model = SentimentAnalysisModel_global(input_size=modified_input_size)
-    model.load_state_dict(torch.load(global_parameters_path))
+    model.load_state_dict(global_parameters)
     model.eval()
 
     # Step 1: Predict sentiment for synth_local_text_df
@@ -276,6 +277,8 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
 
     synth_local_text_df['Local_sentiment'] = predicted_labels.numpy()
     pred_synth_local_text_df = synth_local_text_df[['Caption', 'Local_sentiment']]
+    print(pred_synth_local_text_df)
+    # pdb.set_trace()
 
     # Step 2: Create recommend_df
     recommend_df = pred_synth_local_text_df[pred_synth_local_text_df['Local_sentiment'] == 1]  # Assuming 1 corresponds to 'good'
@@ -285,9 +288,9 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
     bgn_recommend_df = recommend_df.copy()
     bgn_recommend_df['Local_sentiment'] = bgn_recommend_df['Local_sentiment'].replace(sentiment_label_mapping)
 
-    # Step 3: Create local_node1_incremental_1_df
-    local_node1_incremental_1_df = node1_incremental_1_df[['Caption', 'Sentiment']].rename(columns={'Sentiment': 'Local_sentiment'})
 
+    # Step 3: Create local_node1_incremental_1_df
+    local_node1_incremental_1_df = node1_incremental_1_df[['Caption', 'Sentiment']].rename({'Sentiment': 'Local_sentiment'}, axis=1)
     # Step 4: Outlier detection
     scaler = preprocessing.StandardScaler()
     hst = HalfSpaceTrees()
@@ -306,13 +309,14 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
         hst.learn_one(vec)
 
     # Prepare the data from local_node1_incremental_1_df for outlier detection
-    local_node1_incremental_1_df['Local_sentiment'] = local_node1_incremental_1_df['Local_sentiment'].replace(sentiment_mapping)
-    new_row = local_node1_incremental_1_df[['Local_sentiment']].iloc[0].to_dict()
+    local_node1_incremental_1_df['Local_sentiment'] = sentiment_mapping.get(local_node1_incremental_1_df['Local_sentiment'])
+    new_row = local_node1_incremental_1_df[['Local_sentiment']].to_dict()
     scaler.learn_one(new_row)  # Update the scaler with the new data
     new_row_scaled = scaler.transform_one(new_row)
     is_outlier = hst.score_one(new_row_scaled) > 0.5  # Threshold can be adjusted
 
     if not is_outlier:
+        local_node1_incremental_1_df = local_node1_incremental_1_df.to_frame().transpose()
         df_input = pd.concat([pred_synth_local_text_df, local_node1_incremental_1_df])
     else:
         df_input = pred_synth_local_text_df
@@ -326,8 +330,8 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
     bgn_df_input['Sentiment'] = bgn_df_input['Sentiment'].replace(sentiment_label_mapping)
 
     # Step 1: Check and balance dataset
+    df_input['Sentiment'] = df_input['Sentiment'].astype('int64')
     df = balance_dataset(df_input)
-
     # Step 2: Preprocess text data
     df['processed_caption'] = df['Caption'].apply(preprocess_text)
     sentences = df['processed_caption'].tolist()
@@ -361,7 +365,7 @@ def submodel_four(global_parameters_path, synth_local_text_df, node1_incremental
 
     # Load model with pretrained parameters
     model = SentimentAnalysisModel_global(input_size=modified_input_size)
-    model.load_state_dict(torch.load(global_parameters_path))
+    model.load_state_dict(global_parameters)
     model.train()
 
     # Step 3: Train model with differential privacy

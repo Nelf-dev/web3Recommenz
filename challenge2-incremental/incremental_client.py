@@ -9,6 +9,7 @@ import pandas as pd
 import json
 from collections import OrderedDict
 import torch
+import os
 
 
 # Assume this is leos model
@@ -70,44 +71,69 @@ def test():
     response = requests.get(server_location+"/test")
     return response
 
-def incremental_loop(model, data_set, new_row):
-        global_weights = get_global_weights()
-        formatted_global_weight = json_to_ordered_dict(global_weights)
-        
-        # Send formatted_global_weight + Synthetic data to sub model 3
-        synthetic_local_text_data = model.submodel_three(formatted_global_weight, data_set)
+def export_captions_to_json(df):
+    # Check if the DataFrame is empty
+    if df.empty:
+        return "The DataFrame is empty."
 
-        reccomendations, new_data_set, noisy_incremental_weights = model.submodel_four(
-            global_weights,
-            synthetic_local_text_data,
-            new_row)
-        
-        del synthetic_local_text_data
-        del new_row_of_data
+    # Check if 'Caption' column exists
+    if 'Caption' not in df.columns:
+        return "The 'Caption' column is not found in the DataFrame."
 
-        # replace current local data set with new_data_set
-        new_data_set.to_csv('.data/video/node1_data.csv', index=False)
+    # Concatenate the text from the 'Caption' column
+    captions = '. '.join(df['Caption'].astype(str))
 
-        post_server_incremental_data(noisy_incremental_weights)
+    # If there is only one row, remove the trailing full stop
+    if len(df) == 1:
+        captions = captions.rstrip('.')
 
-        time.sleep(0.5)
+    # Prepare the data for JSON
+    data = {'captions': captions}
 
-        # Get List of weights from server
-        all_incremental_weights = get_all_incremental_weights()
-        all_incremental_weights_formatted_to_ordered_dict = [];
+    # Write to a JSON file
+    with open('captions.json', 'w') as json_file:
+        json.dump(data, json_file)
 
-        # Loop through each weights the reformat back to ordered Dictionary type
-        for weight in all_incremental_weights:
-            json_str = json.dumps(weight, indent=2)
-            formatted_weight = json_to_ordered_dict(json_str)
-            all_incremental_weights_formatted_to_ordered_dict.append(formatted_weight)
+    return "Captions exported to captions.json."
 
-        # Process all formatted weights in submodel two get aggregated and arfed'd weights
-        arfed_incremental_weights = model.submodel_two(all_incremental_weights_formatted_to_ordered_dict)
+def incremental_loop(data_set, new_row):
+    model = incremental_model
+    global_weights = get_global_weights()
+    formatted_global_weight = json_to_ordered_dict(global_weights)
+    # Send formatted_global_weight + Synthetic data to sub model 3
+    synthetic_local_text_data = model.submodel_three(data_set)
+    reccomendations, new_data_set, noisy_incremental_weights = model.submodel_four(
+        formatted_global_weight,
+        synthetic_local_text_data,
+        new_row)
+    print(reccomendations)
+    export_captions_to_json(reccomendations)
+    del synthetic_local_text_data
+    del new_row
 
-        # STEP 4
-        # Update global model in the server with new weights
-        update_global_model(arfed_incremental_weights)
+    # replace current local data set with new_data_set
+    new_data_set.to_csv('./data/video/incremental_data.csv', index=False)
+
+    post_server_incremental_data(noisy_incremental_weights)
+
+    time.sleep(0.5)
+
+    # Get List of weights from server
+    all_incremental_weights = get_all_incremental_weights()
+    all_incremental_weights_formatted_to_ordered_dict = [];
+
+    # Loop through each weights the reformat back to ordered Dictionary type
+    for weight in all_incremental_weights:
+        json_str = json.dumps(weight, indent=2)
+        formatted_weight = json_to_ordered_dict(json_str)
+        all_incremental_weights_formatted_to_ordered_dict.append(formatted_weight)
+
+    # Process all formatted weights in submodel two get aggregated and arfed'd weights
+    arfed_incremental_weights = model.submodel_two(all_incremental_weights_formatted_to_ordered_dict)
+
+    # STEP 4
+    # Update global model in the server with new weights
+    update_global_model(arfed_incremental_weights)
 
 def main():
     while True:
@@ -155,16 +181,21 @@ def main():
             while difference < 0:
                 print(difference)
                 # The reason we call it again is that the original dataset is updated
-                incremental_learning_local_dataset = get_data_set('./data/video/node1_data.csv')
-                stripped_dataset = incremental_learning_local_dataset[['Sentiment', 'Caption']]
-
                 new_row = training_data_new.iloc[difference]
                 print(new_row)
-
-                # incremental_loop(model, stripped_dataset, new_row)
-                difference += 1
-
-
+                if os.path.exists('.data/video/incremental_data.csv'):
+                    print("The file '.data/video/incremental_data.csv' exists.")
+                    incremental_learning_local_dataset = get_data_set('.data/video/incremental_data.csv')
+                    incremental_loop(incremental_learning_local_dataset, new_row)
+                    difference += 1
+                else:
+                    print("The file '.data/video/incremental_data.csv' does not exist.")
+                    incremental_learning_local_dataset = get_data_set('./data/video/node1_data.csv')
+                    stripped_dataset = incremental_learning_local_dataset[['Sentiment', 'Caption']]
+                    stripped_dataset.to_csv('./data/video/incremental_data.csv', index=False)
+                    incremental_loop(stripped_dataset, new_row)
+                    difference += 1
+            pdb.set_trace()
 
 
 if __name__=='__main__':
