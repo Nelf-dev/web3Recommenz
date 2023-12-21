@@ -77,18 +77,16 @@ def incremental_loop(model, data_set, new_row):
         # Send formatted_global_weight + Synthetic data to sub model 3
         synthetic_local_text_data = model.submodel_three(formatted_global_weight, data_set)
 
-        # Receive new row of data
-        new_row_of_data = get_data_set('./data/video/node1_incremental_1.csv')
-
         reccomendations, new_data_set, noisy_incremental_weights = model.submodel_four(
             global_weights,
             synthetic_local_text_data,
-            new_row_of_data)
+            new_row)
         
         del synthetic_local_text_data
         del new_row_of_data
 
         # replace current local data set with new_data_set
+        new_data_set.to_csv('.data/video/node1_data.csv', index=False)
 
         post_server_incremental_data(noisy_incremental_weights)
 
