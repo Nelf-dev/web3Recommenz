@@ -67,10 +67,13 @@ def get_data_set():
     data_set = pd.read_csv(csv_file_path)
     return data_set
 
+def test():
+    response = requests.get(server_location+"/test")
+    return response
+
 def incremental_loop(model):
         global_weights = get_global_weights()
         formatted_global_weight = json_to_ordered_dict(global_weights)
-
         # Append new row of data to synthetic_local_text_data
         
         # Send formatted_global_weight + Synthetic data to sub model 3
@@ -99,6 +102,7 @@ def incremental_loop(model):
 
 def main():
     while True:
+        test()
         # STEP 1 
         # Get Initial Global Model Weights
         initial_weights = get_initial_server_data()
@@ -118,7 +122,7 @@ def main():
 
         # Upload updated weights to server
         post_server_data(updated_weights)
-
+        post_server_data(updated_weights)
         # Await other clients that send their weights to server
         time.sleep(0.5)
 
@@ -135,10 +139,8 @@ def main():
         # Process all formatted weights in submodel two get aggregated and arfed'd weights
         arfed_weights = model.submodel_two(all_weights_formatted_to_ordered_dict)
 
-        pdb.set_trace()
         # Update global model in the server with new weights
         update_global_model(arfed_weights)
-
         # ###STEP 3 + 4###
         # Need to put into loop only run when there is new data
         incremental_loop(model)
