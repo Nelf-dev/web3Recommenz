@@ -57,7 +57,10 @@ def generate_sentence(model, max_length=20):
             break
     return ' '.join(sentence)
 
-def submodel_zero(dataset):
+def submodel_three(dataset, seed=21):
+    # Set the random seed for reproducibility
+    random.seed(seed)
+
     captions = dataset['Caption'].tolist()
     markov_model = build_markov_model(captions)
 
