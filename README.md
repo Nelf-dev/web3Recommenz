@@ -1,4 +1,4 @@
-# web3Recommenz
+# Web3Recommenz
 
 ## Project Overview
 
