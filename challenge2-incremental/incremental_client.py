@@ -62,22 +62,31 @@ def get_global_weights():
     return weights
 
 # Convert data set to Pandas dataframe
-def get_data_set():
-    csv_file_path = './data/video/node1_data.csv'
-    data_set = pd.read_csv(csv_file_path)
+def get_data_set(file_path):
+    data_set = pd.read_csv(file_path)
     return data_set
 
 def test():
     response = requests.get(server_location+"/test")
     return response
 
-def incremental_loop(model):
+def incremental_loop(model, data_set):
         global_weights = get_global_weights()
         formatted_global_weight = json_to_ordered_dict(global_weights)
-        # Append new row of data to synthetic_local_text_data
         
         # Send formatted_global_weight + Synthetic data to sub model 3
-        noisy_incremental_weights = model.submodel_three(formatted_global_weight, synthetic_local_text_data)
+        synthetic_local_text_data = model.submodel_three(formatted_global_weight, data_set)
+
+        # Receive new row of data
+        new_row_of_data = get_data_set('./data/video/node1_incremental_1.csv')
+
+        reccomendations, new_data_set, noisy_incremental_weights = model.submodel_three_incremental_learning(
+            global_weights,
+            synthetic_local_text_data,
+            new_row_of_data
+        
+        del synthetic_local_text_data
+        del new_row_of_data
 
         post_server_incremental_data(noisy_incremental_weights)
 
@@ -109,19 +118,12 @@ def main():
         model = incremental_model
 
         # Get Training Data Set
-        training_data = get_data_set()
-
-        # Create synthetic data via submodel zero
-        synthetic_local_text_data = model.submodel_zero(training_data)
+        training_data = get_data_set('./data/video/node1_data.csv')
 
         # Load Weights and Training Data and Process it through submodel One
         updated_weights = model.submodel_one(initial_weights, training_data)
 
-        # Delete Training Data to Ensure Privacy
-        del training_data
-
         # Upload updated weights to server
-        post_server_data(updated_weights)
         post_server_data(updated_weights)
         # Await other clients that send their weights to server
         time.sleep(0.5)
@@ -143,7 +145,7 @@ def main():
         update_global_model(arfed_weights)
         # ###STEP 3 + 4###
         # Need to put into loop only run when there is new data
-        incremental_loop(model)
+        incremental_loop(model, training_data)
 
 
 

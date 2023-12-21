@@ -48,7 +48,7 @@ class IncrementalExample(SimpleServer):
             "documentation": "Testing Endpoint",
         })
     def test(self,request):
-        data = {"params": "hello"}
+        data = {"params": "Kung Fu tutorial but with your holding a can of beans"}
         print(data)
         return JSONResponseCORS(data)
 
