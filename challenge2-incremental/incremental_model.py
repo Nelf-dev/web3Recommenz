@@ -59,19 +59,6 @@ def generate_sentence(model, max_length=20):
             break
     return ' '.join(sentence)
 
-def submodel_three(dataset, seed=21):
-    # Set the random seed for reproducibility
-    random.seed(seed)
-
-    captions = dataset['Caption'].tolist()
-    markov_model = build_markov_model(captions)
-
-    synthesized_captions = []
-    for _ in range(5):
-        synthesized_captions.append(generate_sentence(markov_model))
-
-    return pd.DataFrame(synthesized_captions, columns=['Caption'])
-
 # Function to check and balance the dataset
 def balance_dataset(df):
     sentiment_counts = df['Sentiment'].value_counts()
