@@ -70,7 +70,7 @@ def test():
     response = requests.get(server_location+"/test")
     return response
 
-def incremental_loop(model, data_set):
+def incremental_loop(model, data_set, new_row):
         global_weights = get_global_weights()
         formatted_global_weight = json_to_ordered_dict(global_weights)
         
@@ -80,13 +80,15 @@ def incremental_loop(model, data_set):
         # Receive new row of data
         new_row_of_data = get_data_set('./data/video/node1_incremental_1.csv')
 
-        reccomendations, new_data_set, noisy_incremental_weights = model.submodel_three_incremental_learning(
+        reccomendations, new_data_set, noisy_incremental_weights = model.submodel_four(
             global_weights,
             synthetic_local_text_data,
-            new_row_of_data
+            new_row_of_data)
         
         del synthetic_local_text_data
         del new_row_of_data
+
+        # replace current local data set with new_data_set
 
         post_server_incremental_data(noisy_incremental_weights)
 
@@ -144,8 +146,25 @@ def main():
         # Update global model in the server with new weights
         update_global_model(arfed_weights)
         # ###STEP 3 + 4###
-        # Need to put into loop only run when there is new data
-        incremental_loop(model, training_data)
+
+        # Find out how many new row of data theres,loop for that many times
+        # so have like initial data and then another updated dataset
+        #  check is past dataset count < new dataset count if yes
+        # Loop for difference between past and new datasetnHh
+        training_data_new = get_data_set('./data/video/node1_data_new.csv')
+        if len(training_data) < len(training_data_new):
+            difference = len(training_data) - len(training_data_new)
+            while difference < 0:
+                print(difference)
+                # The reason we call it again is that the original dataset is updated
+                incremental_learning_local_dataset = get_data_set('./data/video/node1_data.csv')
+                stripped_dataset = incremental_learning_local_dataset[['Sentiment', 'Caption']]
+
+                new_row = training_data_new.iloc[difference]
+                print(new_row)
+
+                # incremental_loop(model, stripped_dataset, new_row)
+                difference += 1
 
 
 
