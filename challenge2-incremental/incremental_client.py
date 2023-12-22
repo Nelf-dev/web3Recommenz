@@ -116,7 +116,7 @@ def incremental_loop(data_set, new_row):
 
     post_server_incremental_data(noisy_incremental_weights)
 
-    time.sleep(0.5)
+    time.sleep(10)
 
     # Get List of weights from server
     all_incremental_weights = get_all_incremental_weights()
@@ -152,7 +152,7 @@ def main():
         # Upload updated weights to server
         post_server_data(updated_weights)
         # Await other clients that send their weights to server
-        time.sleep(0.5)
+        time.sleep(10)
 
         # Get List of weights from server
         all_weights = get_all_weights()

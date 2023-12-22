@@ -1,0 +1,75 @@
+{
+    "name": "Federated Incremental Learning Server",
+    "description": "A decentralized automated recommender system for video content creation",
+    "version": "1.0.0",
+    "author": "Nelson Feng, Leo Chow and Corey Ho",
+  
+    "endpoints": [
+  
+      {
+        "path": "/test",
+        "methods": [
+          "GET"
+        ], 
+        "description": "Testing endpoint"
+      },
+  
+      {
+        "path": "/get_initial_server_data",  
+        "methods": [
+          "GET"
+        ],
+        "description": "Return initial weights"
+      },
+  
+      {
+        "path": "/post_server_data",
+        "methods": [
+          "POST"  
+        ],
+        "description": "Post weights"
+      },
+  
+      {
+        "path": "/post_server_incremental_data",
+        "methods": [
+          "POST"
+        ],
+        "description": "Post incremental weights" 
+      },
+  
+      {
+        "path": "/get_all_weights",
+        "methods": [
+          "GET"
+        ],
+        "description": "Return all weights"
+      },
+  
+      {
+        "path": "/get_all_incremental_weights",
+        "methods": [
+          "GET"  
+        ],
+        "description": "Return all incremental weights"
+      },
+  
+      {
+        "path": "/update_global_model",
+        "methods": [
+          "POST"
+        ],
+        "description": "Update Global Model"
+      },
+  
+      {
+        "path": "/get_global_weights",
+        "methods": [
+          "GET"
+        ],
+        "description": "Get Global Model" 
+      }
+  
+    ]
+  
+  }
