@@ -22,8 +22,8 @@ The Incremental Learning sub-challenge focuses on the development of models that
 
 ## Data
 
-Dataset was sourced from [https://github.com/google-research-datasets/videoCC-data] based on this paper [https://arxiv.org/pdf/2204.00679.pdf].
-See `create_data.py` to generate the datasets.
+Dataset was sourced from https://github.com/google-research-datasets/videoCC-data based on this paper https://arxiv.org/pdf/2204.00679.pdf.
+Download the `create_data.py` to generate the datasets.
 
 
 ## Getting Started
