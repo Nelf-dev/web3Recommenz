@@ -20,6 +20,12 @@ In the Federated Learning System sub-challenge, our team aims to build a robust 
 
 The Incremental Learning sub-challenge focuses on the development of models that can adapt and learn continuously as new data becomes available. Our team will explore techniques for updating the model with new information without discarding previously acquired knowledge, making it well-suited for scenarios with evolving datasets.
 
+## Data
+
+Dataset was sourced from [https://github.com/google-research-datasets/videoCC-data] based on this paper [https://arxiv.org/pdf/2204.00679.pdf].
+See `create_data.py` to generate the datasets.
+
+
 ## Getting Started
 
 To get started with the project, follow these steps:
