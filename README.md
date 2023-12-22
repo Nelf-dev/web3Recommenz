@@ -31,3 +31,11 @@ To get started with the project, follow these steps:
    ```
 
 2. Make sure you have python 3.7.9 installed
+
+3. Run the server code:
+`python incremental_server.py`
+
+4. Then run some clients:
+`python incremental_client.py`
+
+`python incremental_client.py`
