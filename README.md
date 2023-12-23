@@ -23,7 +23,7 @@ The Incremental Learning sub-challenge focuses on the development of models that
 ## Data
 
 Dataset was sourced from https://huggingface.co/datasets/OpenGVLab/InternVid/tree/refs%2Fconvert%2Fparquet/default/train based on this paper https://arxiv.org/abs/2307.06942
-Download the `create_data.py` to generate the datasets.
+Download the 0000.parquet file and use the `create_data.py` to generate the datasets.
 
 
 ## Getting Started
