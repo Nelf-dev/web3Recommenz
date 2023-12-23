@@ -10,6 +10,11 @@ This project is a collaborative effort by Leo, Corey, and Nelson. The team has s
 - Corey
 - Nelson
 
+## Our submission for OpenD/I Hackathon Challenge 4 on Sat, 23 Dec 2024 and presented at Tank Stream Labs on Fri, 22 Dec 2024 is in below folder:
+https://github.com/Nelf-dev/web3Recommenz/tree/main/federated-incremental
+
+See recorded presentation: https://youtu.be/B1YxLKcBsvk?t=6600
+
 ## Sub-Challenges
 
 ### 1. Decentralized Federated Learning System
