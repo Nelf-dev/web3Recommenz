@@ -15,6 +15,10 @@ https://github.com/Nelf-dev/web3Recommenz/tree/main/federated-incremental
 
 See recorded presentation: https://youtu.be/B1YxLKcBsvk?t=6600
 
+### We also attempted the genetic algorithm, challenge 4.3 and uploaded a very basic version because we did not have enough time.
+
+See: https://github.com/Nelf-dev/web3Recommenz/tree/main/federated-incremental/BONUS-SECTION-prompt-optimization-genetic-algorithm
+
 ## Sub-Challenges
 
 ### 1. Decentralized Federated Learning System
