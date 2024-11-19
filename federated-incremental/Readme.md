@@ -48,6 +48,7 @@ Wait for 10 secs for the server file to receive all noisy incremental learning m
 Client file sends a get request to the server file to get all noisy incremental learning model updates for ALL clients (ie. the completed json file) (similar to Step 1.6). 
 
 Client sends the completed json file to the model file (to DARFED global sub-model 2) (similar to Step 1.7).  
+
 Step 4 - Incremental model - DARFED model - Global model (ie. global model with incremental learning) 
 Sub-model 2 does the DARFED algo to identify outliers. Outliers are determined using the Inter-Quartile Range (IQR) method, where any values sitting below (Q1 - 1.5*IQR) and above (Q3 + 1.5*IQR) are treated as outliers. Q1 = 1st quartile (25th percentile). Q3 = 3rd quartile (75th percentile). IQR = Q3 - Q1. (similar to Step 2.1).
 
