@@ -51,6 +51,7 @@ To get started with the project, follow these steps:
 `python incremental_server.py`
 
 4. Then run some clients:
+
 `python incremental_client.py`
 
 `python incremental_client.py`
